@@ -1,5 +1,6 @@
 const Promise = require('bluebird');
 const co = require('co');
+const pointCloud = require('./pointCloud');
 const serialPort = Promise.promisifyAll(require('serialport'));
 const SerialPort = serialPort.SerialPort;
 const keypress = require('keypress');
@@ -108,8 +109,9 @@ function command(key, name) {
     case 'q':
       if (exportData.length) {
         arduino.writeAsync('n')
-        console.log('Done scanning, logging data here:');
-        console.log(JSON.stringify(exportData));
+        console.log('Done scanning, logging data here:\n\n\n');
+        var data = pointCloud.pointCloud(JSON.stringify(exportData));
+        console.log(pointCloud.outputFormat(pointCloud));
         exportData = [];
         scanStart = 0;
       } else {
