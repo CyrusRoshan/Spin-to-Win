@@ -1,5 +1,6 @@
 module.exports = {
-  pointCloud: pointCloud
+  pointCloud: pointCloud,
+  outputFormat: outputFormat
 }
 
 const fs = require('fs');
@@ -8,7 +9,7 @@ const VERTICAL_TIME = 55954; // ms
 const VERTICAL_DIST = 6.6 // cm
 const ROTATION_TIME = 4225.5 // ms
 const DISTANCE_TO_CENTER = 4.2 //cm
-const TOTAL_ROTATIONS = VERTICAL_TIME / ROTATION_TIME; 
+const TOTAL_ROTATIONS = VERTICAL_TIME / ROTATION_TIME;
 
 function pointCloud(oneAxisDistanceTimeMap) { // [(time, distance_from_sensor), ...]
   return oneAxisDistanceTimeMap.map(val => {
@@ -45,8 +46,8 @@ function outputFormat(data) {
   return bracketFinal;
 }
 
-var data = fs.readFileSync('../test.dat');
+/*var data = fs.readFileSync('../test.dat');
 data = JSON.parse(data);
 var dataMap = pointCloud(data);
 dataMap = outputFormat(dataMap);
-fs.writeFile('../final.txt', dataMap)
+fs.writeFile('../final.txt', dataMap)*/

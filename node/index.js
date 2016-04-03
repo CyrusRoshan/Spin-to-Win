@@ -1,5 +1,6 @@
 const Promise = require('bluebird');
 const co = require('co');
+var ncp = require("copy-paste");
 const pointCloud = require('./pointCloud');
 const serialPort = Promise.promisifyAll(require('serialport'));
 const SerialPort = serialPort.SerialPort;
@@ -110,8 +111,14 @@ function command(key, name) {
       if (exportData.length) {
         arduino.writeAsync('n')
         console.log('Done scanning, logging data here:\n\n\n');
-        var data = pointCloud.pointCloud(JSON.stringify(exportData));
-        console.log(pointCloud.outputFormat(pointCloud));
+        var data = pointCloud.pointCloud(exportData);
+        ncp.copy('testData ={Point[' + pointCloud.outputFormat(data) + ']};' +
+        '(*newData = {Point[{0,0,0},{1,0,0},{0,1,0},{1,1,0},{0,0,1},{1,0,1}, {0,1,1},{1,1,1},{.5,.5,.5}]};*)' +
+'Graphics3D[testData]' +
+'(*ListSurfacePlot3D[testData,AxesLabel -> {"x", "y", "z"}]*)' +
+'(*CloudDeploy[APIFunction[{"data" -> "String"}, Permissions ->"Public", createObj, Graphics3D]]*)', function () {
+console.log('copied to board');
+})
         exportData = [];
         scanStart = 0;
       } else {
