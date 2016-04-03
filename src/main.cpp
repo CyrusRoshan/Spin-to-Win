@@ -3,10 +3,7 @@
 
 int sensorVal = 0;
 int motorPin = 3;
-
 Servo vertical;
-
-int tempTime = 0;
 
 void setup() {
     vertical.attach(9);
@@ -22,7 +19,7 @@ void loop() {
     Serial.print(sensorVal);
     Serial.println("]");
 
-    delay(20);
+    delay(70);
 }
 
 void serialEvent() {
