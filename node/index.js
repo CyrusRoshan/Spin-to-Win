@@ -10,6 +10,8 @@ process.stdin.on('keypress', command);
 process.stdin.setRawMode(true);
 process.stdin.resume();
 
+const blockSize = 0.005;
+const functionBestFit = '-600+(19169 x)/30+(30433 x^2)/360-(1751 x^3)/16+(4009 x^4)/144-(727 x^5)/240+(89 x^6)/720';
 var scanStart = 0;
 var exportData = [];
 
@@ -22,8 +24,8 @@ function convertToJs(z, x){
 
 var lookupTable = [];
 
-for (var i = 0; i < 5; i += 0.05) {
-  lookupTable.push(eval(convertToJs('', i)));
+for (var i = 1; i < 5.1; i += blockSize) {
+  lookupTable.push(eval(convertToJs(functionBestFit, i)));
 }
 
 const arduino = new SerialPort('/dev/cu.usbmodem1411', {
@@ -53,7 +55,10 @@ arduino.on('data', (data) => {
   if (scanStart) {
     try {
       var rawData = JSON.parse(data)[0];
-      exportData.push({data: rawData, time: Date.now() - scanStart});
+      var dataPoint = ({data: rawData, distance: binarySearch.closest(lookupTable, rawData) * blockSize, time: Date.now() - scanStart});
+      if (dataPoint.distance <= 5) { //cutoff point, everything else is assumed to be thin air
+        exportData.push(dataPoint);
+      }
     } catch (e) {};
   }
 });
@@ -104,7 +109,7 @@ function command(key, name) {
       if (exportData.length) {
         arduino.writeAsync('n')
         console.log('Done scanning, logging data here:');
-        console.log(exportData);
+        console.log(JSON.stringify(exportData));
         exportData = [];
         scanStart = 0;
       } else {
