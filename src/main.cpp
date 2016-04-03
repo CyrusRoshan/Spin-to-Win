@@ -19,7 +19,7 @@ void loop() {
     Serial.print(sensorVal);
     Serial.println("]");
 
-    delay(70);
+    delay(20);
 }
 
 void serialEvent() {
@@ -30,6 +30,8 @@ void serialEvent() {
         } else if (inChar == 'U'){
             vertical.write(95);
         } else if (inChar == 'd'){
+            vertical.write(88);
+        } else if (inChar == 'D'){
             vertical.write(85);
         } else if (inChar == 'n'){
             vertical.write(90);

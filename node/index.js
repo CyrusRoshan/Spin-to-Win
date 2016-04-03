@@ -2,96 +2,120 @@ const Promise = require('bluebird');
 const co = require('co');
 const serialPort = Promise.promisifyAll(require('serialport'));
 const SerialPort = serialPort.SerialPort;
-const readline = require('readline');
+const keypress = require('keypress');
+const binarySearch = require('binarysearch');
 
-const upTime = -(272852 - 325266) + 3500;
-const downTime = -(47131 - 51554);
-const spinCycle = 4225;
+keypress(process.stdin);
+process.stdin.on('keypress', command);
+process.stdin.setRawMode(true);
+process.stdin.resume();
 
 var scanStart = 0;
 var exportData = [];
 
+function convertToJs(z, x){
+  z = z.replace(/ x/g, '*x');
+  z = z.replace(/x\^(\d*)/g, "Math.pow(x, $1)");
+  z = z.replace(/x/g, x);
+  return z;
+}
+
+var lookupTable = [];
+
+for (var i = 0; i < 5; i += 0.05) {
+  lookupTable.push(eval(convertToJs('', i)));
+}
+
 const arduino = new SerialPort('/dev/cu.usbmodem1411', {
-    parser: serialPort.parsers.readline("\n"),
-    baudrate: 9600,
-    disconnectedCallback: () => {console.alert('Arduino Disconnected, Exiting...'); process.exit(1);}
+  parser: serialPort.parsers.readline("\n"),
+  baudrate: 9600,
+  disconnectedCallback: () => {console.alert('Arduino Disconnected, Exiting...'); process.exit(1);}
 }, true);
 
 const moveUp = co.wrap(function* () {
-  arduino.write('u');
+  arduino.writeAsync('u');
   console.log('moving up');
   yield delay(upTime);
   console.log('reached top');
-  arduino.write('n');
+  arduino.writeAsync('n');
 });
 
 const moveDown = co.wrap(function* () {
-  arduino.write('d');
+  arduino.writeAsync('d');
   console.log('moving down');
   console.log(typeof downTime, downTime);
   yield delay(downTime);
   console.log('reached bottom');
-  arduino.write('n');
+  arduino.writeAsync('n');
 });
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
 
 arduino.on('data', (data) => {
   if (scanStart) {
     try {
       var rawData = JSON.parse(data)[0];
-      exportData.push([rawData, Date.now() - scanStart]);
+      exportData.push({data: rawData, time: Date.now() - scanStart});
     } catch (e) {};
   }
 });
 
-rl.on('line', (cmd) => {
+function command(key, name) {
   console.log(Date.now());
-  if (cmd === 'u') {
-    arduino.writeAsync('u');
+  if (!isNaN(String(key))) {
+    name = {};
+    name.name = key; //lmao
   }
-  else if (cmd === 'd') {
-    arduino.writeAsync('d');
+  console.log(name.name);
+  switch (name.name) {
+    case 'c':
+      if (!name.ctrl) {
+        break;
+      }
+    case 'escape':
+      process.stdin.pause();
+      process.exit();
+      break;
+    case 'u':
+      (name.shift) ? arduino.writeAsync('U') : arduino.writeAsync('u');
+      break;
+    case 'd':
+      (name.shift) ? arduino.writeAsync('D') : arduino.writeAsync('d');
+      break;
+    case 'n':
+      arduino.writeAsync('n');
+      break;
+    case '1':
+      arduino.writeAsync('1');
+      console.log('Started spinning')
+      break;
+    case '0':
+      arduino.writeAsync('0');
+      console.log('Stopped spinning');
+      break;
+    case 's':
+      if (scanStart) {
+        console.log('Scan already in progress, end with "q"');
+      } else {
+        arduino.writeAsync('u')
+        console.log('Scan started, end with "q"');
+        scanStart = Date.now();
+      }
+      break;
+    case 'q':
+      if (exportData.length) {
+        arduino.writeAsync('n')
+        console.log('Done scanning, logging data here:');
+        console.log(exportData);
+        exportData = [];
+        scanStart = 0;
+      } else {
+        console.log('No scan has been started. Start one with "s"');
+      }
+      break;
+    default:
+      console.log('Not a valid command, valid commands: ^c/esc, u, d, n, 1, 0, s, q');
+      break;
   }
-  else if (cmd === 'n') {
-    arduino.writeAsync('n');
-  }
-  else if (cmd === 'up') {
-    moveUp();
-  } else if (cmd === 'down') {
-    moveDown();
-  } else if (cmd === '1') {
-    arduino.writeAsync('1');
-    console.log('set to spinning')
-  } else if (cmd === '0') {
-    arduino.writeAsync('0');
-    console.log('stopped spinning');
-  } else if (cmd === 'scan') {
-    co(function* () {
-      arduino.write('u');
-      console.log('started scanning');
-      var delayTime = delay(upTime);
-      scanStart = Date.now();
-      yield delayTime;
-      arduino.write('n');
-      console.log('done scanning, logging data here:');
-      console.log(exportData);
-      exportData = [];
-      scanStart = 0;
-    }).catch(console.log);
-  } else if (cmd === 'mscan') {
-    scanStart = Date.now();
-  } else if (cmd === 'sscan') {
-    console.log('done scanning, logging data here:');
-    console.log(exportData);
-    exportData = [];
-    scanStart = 0;
-  }
-});
+}
 
 function delay(time) {
   return new Promise(function (fulfill) {
