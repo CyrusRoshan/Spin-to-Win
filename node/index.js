@@ -99,15 +99,17 @@ function command(key, name) {
       console.log('Stopped spinning');
       break;
     case 's':
+      arduino.writeAsync('1');
       if (scanStart) {
         console.log('Scan already in progress, end with "q"');
       } else {
-        arduino.writeAsync('u')
+        arduino.writeAsync('u');
         console.log('Scan started, end with "q"');
         scanStart = Date.now();
       }
       break;
     case 'q':
+      arduino.writeAsync('0');
       if (exportData.length) {
         arduino.writeAsync('n')
         console.log('Done scanning, logging data here:\n\n\n');
@@ -129,10 +131,4 @@ console.log('copied to board');
       console.log('Not a valid command, valid commands: ^c/esc, u, d, n, 1, 0, s, q');
       break;
   }
-}
-
-function delay(time) {
-  return new Promise(function (fulfill) {
-    setTimeout(fulfill, time);
-  });
 }
